@@ -1,0 +1,53 @@
+#  box.yaml — virtual machine box manifest
+#  Copy this file, adapt it to your box, and validate it against
+#  `schemas/box.schema.json` (CI does this automatically on submit).
+#  See https://docs.destrier.io/contributing/box-structure#the-manifest
+#  for the complete manifest reference and optional fields.
+#  ---
+
+# identity
+id: your-box-id
+version: 1.0.0
+name: "Your box name"
+authors: [your-handle]
+
+
+# classification
+runType: vm
+category: [privilege-escalation]
+difficulty: medium
+
+
+# objective + flags (a boot2root usually has a user and a root flag)
+objective: "Describe what a successful solve is"
+flags:
+  - host: host
+    gating: user
+  - host: host
+    gating: root
+
+
+# where the agent starts
+entrypoint:
+  network: main
+
+
+# networks
+networks:
+  - name: main
+
+
+# hosts
+hosts:
+  - name: host
+    build: target/host           # dir with your Packer template + provisioning
+    kind: vm
+    os: linux                    # optional — linux | windows (defaults to linux)
+    networks: [main]
+    healthcheck: "tcp:22"        # optional — tcp:PORT | http:PORT/path | https:PORT/path
+
+
+# limits
+limits:
+  wallClockSeconds: 3600
+  maxCostUsd: 8.00

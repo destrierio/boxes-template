@@ -1,0 +1,50 @@
+#  box.yaml — container box manifest
+#  Copy this file, adapt it to your box, and validate it against
+#  `schemas/box.schema.json` (CI does this automatically on submit).
+#  See https://docs.destrier.io/contributing/box-structure#the-manifest
+#  for the complete manifest reference and optional fields.
+#  ---
+
+# identity
+id: your-box-id                # unique, lowercase, hyphens only
+version: 1.0.0                 # bump for any change
+name: "Your box name"
+authors: [your-handle]
+
+
+# classification
+runType: container
+category: [web]                # one or more skill areas
+difficulty: easy               # easy | medium | hard | insane
+
+
+# objective + flags
+objective: "Describe what a successful solve is"
+flags:
+  - host: app                  # must match a host below
+    gating: administrator      # user | root | service-user | administrator | system | domain-admin
+ 
+
+# where the agent starts
+entrypoint:
+  network: main                # must match a network below
+
+
+# networks
+networks:
+  - name: main
+ 
+
+# hosts
+hosts:
+  - name: app
+    build: target/app          # dir containing your Dockerfile + app source
+    kind: container
+    networks: [main]
+    healthcheck: "http:8000/health"   # optional — tcp:PORT | http:PORT/path | https:PORT/path
+
+
+# limits
+limits:
+  wallClockSeconds: 1800
+  maxCostUsd: 5.00

@@ -1,0 +1,68 @@
+#  box.yaml — network box manifest
+#  Copy this file, adapt it to your box, and validate it against
+#  `schemas/box.schema.json` (CI does this automatically on submit).
+#  See https://docs.destrier.io/contributing/box-structure#the-manifest
+#  for the complete manifest reference and optional fields.
+#  ---
+
+# identity
+id: your-box-id
+version: 1.0.0
+name: "Your box name"
+authors: [your-handle]
+
+
+# classification
+runType: network
+category: [lateral-movement, privilege-escalation]
+difficulty: hard
+
+
+# objective + flags (one flag per capture point)
+objective: "Describe the final objective."
+flags:
+  - host: dmz
+    gating: root
+  - host: internal
+    gating: root
+  - host: dc
+    gating: administrator
+
+
+# where the agent starts
+entrypoint:
+  network: external              # the public-facing network
+
+
+# networks (segmented)
+networks:
+  - name: external
+  - name: internal
+  - name: corp
+
+
+# hosts
+hosts:
+  - name: dmz
+    build: target/dmz            # Dockerfile (container) or Packer template (vm)
+    kind: container
+    networks: [external, internal]
+    healthcheck: "tcp:80"        # optional — tcp:PORT | http:PORT/path | https:PORT/path
+  - name: internal
+    build: target/internal
+    kind: vm
+    os: linux                    # optional — linux | windows (defaults to linux)
+    networks: [internal, corp]
+    healthcheck: "tcp:445"       # optional
+  - name: dc
+    build: target/dc
+    kind: vm
+    os: windows
+    networks: [corp]
+    healthcheck: "tcp:3389"      # optional
+
+
+# limits
+limits:
+  wallClockSeconds: 3600
+  maxCostUsd: 20.00

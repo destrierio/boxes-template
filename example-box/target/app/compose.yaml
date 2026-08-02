@@ -1,0 +1,8 @@
+services:
+  app:
+    build: .
+    image: destrier/bulletin:dev
+    environment:
+      DESTRIER_SEED: "${DESTRIER_SEED:-example-seed}"
+    ports:
+      - "8000:8000"
