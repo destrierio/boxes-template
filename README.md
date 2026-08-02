@@ -32,7 +32,7 @@ When your box is ready:
 2. Add your assigned Destrier reviewer as a collaborator with read access.
 3. Send them the repository link.
 
-> [!IMPORTANT] Never make your repository public. It contains your reference exploit and other review-only material.
+> Never make your repository public. It contains your reference exploit and other review-only material.
 
 
 ## Learn more
