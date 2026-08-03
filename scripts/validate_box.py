@@ -105,8 +105,21 @@ def check(box_yaml: Path) -> list[str]:
             elif not (box_dir / path).is_dir():
                 errors.append(f"host '{name}': build path '{path}' does not exist")
         elif btype == "image":
-            if not h["build"].get("image"):
-                errors.append(f"host '{name}': build.image (filename) is required for an image build")
+            image = h["build"].get("image")
+            if not image:
+                errors.append(f"host '{name}': build.image is required for an image build")
+            else:
+                # The bytes live in the platform's artifact store, so there is
+                # no local path to check and no way to confirm the digest from
+                # here — that happens on upload. What IS checkable is
+                # `builtFrom`: a real path a reviewer follows to the template
+                # behind an otherwise opaque image, and worth catching before
+                # review rather than during it.
+                built_from = image.get("builtFrom")
+                if built_from is not None and not (box_dir / built_from).is_dir():
+                    errors.append(
+                        f"host '{name}': build.image.builtFrom '{built_from}' does not exist"
+                    )
  
         # validate host IP assignments
         for attach in h["networks"]:

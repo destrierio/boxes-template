@@ -53,13 +53,21 @@ hosts:
       - name: corp
         ip: 10.10.1.10           
     healthcheck: "tcp:80"
+  # A domain controller ships as a prebuilt image: it cannot be built in CI, and
+  # it is tens of gigabytes. You do NOT write the image block by hand —
+  # `boxr box push dc` converts your disk to qcow2, uploads it (resumable, so it
+  # survives a dropped connection), and rewrites this host with the digest.
   - name: dc
     kind: vm
     os: windows
-    role: domain-controller      # a domain controller ships as an image
+    role: domain-controller
     build:
       type: image
-      image: dc.vmdk             # upload this disk to the submission bucket
+      image:
+        artifact: sha256:9f2c1e00000000000000000000000000000000000000000000000000000000ff
+        format: qcow2
+        sizeBytes: 42949672960
+        builtFrom: target/dc     # optional — where a reviewer finds the template
     networks:
       - name: corp
         ip: 10.10.1.20

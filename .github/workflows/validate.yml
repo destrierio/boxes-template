@@ -17,5 +17,8 @@ jobs:
       - name: Install dependencies
         run: pip install jsonschema pyyaml
 
+      - name: Test the schema
+        run: python3 scripts/test_schema.py
+
       - name: Validate box.yaml
         run: python3 scripts/validate_box.py

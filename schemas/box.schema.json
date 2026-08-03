@@ -5,7 +5,21 @@
   "description": "Describes how Destrier builds, runs, and evaluates a box. Every box contains a single `box.yaml`.",
   "type": "object",
   "additionalProperties": false,
-  "required": ["id", "version", "name", "authors", "runType", "category", "difficulty", "objective", "flags", "entrypoint", "networks", "hosts", "limits"],
+  "required": [
+    "id",
+    "version",
+    "name",
+    "authors",
+    "runType",
+    "category",
+    "difficulty",
+    "objective",
+    "flags",
+    "entrypoint",
+    "networks",
+    "hosts",
+    "limits"
+  ],
   "properties": {
     "id": {
       "type": "string",
@@ -33,7 +47,11 @@
     },
     "runType": {
       "type": "string",
-      "enum": ["container", "vm", "network"],
+      "enum": [
+        "container",
+        "vm",
+        "network"
+      ],
       "description": "The type of environment the box runs in: a single container, a single virtual machine, or a multi-host network."
     },
     "category": {
@@ -48,7 +66,12 @@
     },
     "difficulty": {
       "type": "string",
-      "enum": ["easy", "medium", "hard", "insane"],
+      "enum": [
+        "easy",
+        "medium",
+        "hard",
+        "insane"
+      ],
       "description": "The validated difficulty of the box."
     },
     "objective": {
@@ -63,7 +86,10 @@
       "items": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["host", "gating"],
+        "required": [
+          "host",
+          "gating"
+        ],
         "properties": {
           "host": {
             "type": "string",
@@ -72,7 +98,14 @@
           "gating": {
             "type": "string",
             "description": "The privilege required to retrieve this flag. The flag is generated for every run and is never committed to the box.",
-            "enum": ["user", "root", "service-user", "administrator", "system", "domain-admin"]
+            "enum": [
+              "user",
+              "root",
+              "service-user",
+              "administrator",
+              "system",
+              "domain-admin"
+            ]
           }
         }
       }
@@ -80,7 +113,9 @@
     "entrypoint": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["network"],
+      "required": [
+        "network"
+      ],
       "properties": {
         "network": {
           "type": "string",
@@ -95,7 +130,10 @@
       "items": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["name", "cidr"],
+        "required": [
+          "name",
+          "cidr"
+        ],
         "properties": {
           "name": {
             "type": "string",
@@ -117,7 +155,12 @@
       "items": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["name", "kind", "build", "networks"],
+        "required": [
+          "name",
+          "kind",
+          "build",
+          "networks"
+        ],
         "properties": {
           "name": {
             "type": "string",
@@ -126,29 +169,43 @@
           },
           "kind": {
             "type": "string",
-            "enum": ["container", "vm"],
+            "enum": [
+              "container",
+              "vm"
+            ],
             "description": "The host type."
           },
           "os": {
             "type": "string",
-            "enum": ["linux", "windows"],
+            "enum": [
+              "linux",
+              "windows"
+            ],
             "default": "linux",
             "description": "The guest operating system. Defaults to `linux`."
           },
           "role": {
             "type": "string",
-            "enum": ["domain-controller"],
+            "enum": [
+              "domain-controller"
+            ],
             "description": "Optional. Marks the host as an Active Directory domain controller. Domain controllers must use `build.type: image`."
           },
           "build": {
             "type": "object",
             "additionalProperties": false,
-            "required": ["type"],
+            "required": [
+              "type"
+            ],
             "description": "How the host is built.",
             "properties": {
               "type": {
                 "type": "string",
-                "enum": ["dockerfile", "packer", "image"],
+                "enum": [
+                  "dockerfile",
+                  "packer",
+                  "image"
+                ],
                 "description": "`dockerfile` builds a container from source, `packer` builds a virtual machine from source, and `image` uses a prebuilt disk image (domain controllers only)."
               },
               "path": {
@@ -156,10 +213,78 @@
                 "description": "Path to the build definition. Required for `dockerfile` and `packer`."
               },
               "image": {
-                "type": "string",
-                "description": "Filename of the prebuilt disk image. Required for `image`."
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "artifact",
+                  "format",
+                  "sizeBytes"
+                ],
+                "description": "The prebuilt disk image, referenced by content digest. Written by `boxr box push`; do not fill it in by hand. Required when `type` is `image`.",
+                "properties": {
+                  "artifact": {
+                    "type": "string",
+                    "pattern": "^sha256:[a-f0-9]{64}$",
+                    "description": "The uploaded image's content digest. A digest rather than a filename because scores are recorded against a box version: a filename can be repointed at different bytes, and every earlier result against that version would silently stop meaning anything."
+                  },
+                  "format": {
+                    "type": "string",
+                    "enum": [
+                      "qcow2"
+                    ],
+                    "description": "The disk image format. Only qcow2 \u2014 it is what the platform boots. `boxr box push` converts other formats before uploading."
+                  },
+                  "sizeBytes": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "description": "The uploaded image's size in bytes, checked against the stored object."
+                  },
+                  "builtFrom": {
+                    "type": "string",
+                    "description": "Optional. The build definition this image was produced from, for example target/dc. The platform never reads it; it is how a reviewer finds the Packer template behind an otherwise opaque image."
+                  }
+                }
               }
-            }
+            },
+            "allOf": [
+              {
+                "if": {
+                  "properties": {
+                    "type": {
+                      "enum": [
+                        "dockerfile",
+                        "packer"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "type"
+                  ]
+                },
+                "then": {
+                  "required": [
+                    "path"
+                  ]
+                }
+              },
+              {
+                "if": {
+                  "properties": {
+                    "type": {
+                      "const": "image"
+                    }
+                  },
+                  "required": [
+                    "type"
+                  ]
+                },
+                "then": {
+                  "required": [
+                    "image"
+                  ]
+                }
+              }
+            ]
           },
           "networks": {
             "type": "array",
@@ -168,7 +293,10 @@
             "items": {
               "type": "object",
               "additionalProperties": false,
-              "required": ["name", "ip"],
+              "required": [
+                "name",
+                "ip"
+              ],
               "properties": {
                 "name": {
                   "type": "string",
@@ -193,7 +321,10 @@
     "limits": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["wallClockSeconds", "maxCostUsd"],
+      "required": [
+        "wallClockSeconds",
+        "maxCostUsd"
+      ],
       "properties": {
         "wallClockSeconds": {
           "type": "integer",
