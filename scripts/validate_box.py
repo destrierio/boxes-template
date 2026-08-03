@@ -2,16 +2,17 @@
 """
 Validate contributor boxes.
 
-Validates every `box.yaml` in the repository except the repo's reference
+Validates every `box.yaml` in the repository except the templates's reference
 directories (`example-box/`, `network-example/`, and `templates/`). Any other
 directory is treated as a contributor box, regardless of its name.
 
 For each box, validates that:
-  1. `box.yaml` conforms to `schemas/box.schema.json`.
-  2. Cross-references are valid (for example, `flag.host`,
-     `entrypoint.network`, and host networks).
-  3. Required directories exist (`target/`, `solver/`, and each host's build
-     path).
+  1. The manifest matches the schema.
+  2. All manifest cross-references are valid.
+  3. The run type matches the host definitions.
+  4. Each host uses the correct build method.
+  5. Networks and host IPs are valid.
+  6. The required directory structure is present.
 
 Exits with status 0 if all checks pass, otherwise 1.
 """
@@ -26,7 +27,6 @@ ROOT = Path(__file__).resolve().parent.parent
 SCHEMA = json.loads((ROOT / "schemas" / "box.schema.json").read_text())
 VALIDATOR = Draft202012Validator(SCHEMA)
  
-
 RESERVED = {"example-box", "network-example", "templates"}
  
  
@@ -46,28 +46,25 @@ def check(box_yaml: Path) -> list[str]:
     except yaml.YAMLError as e:
         return [f"invalid YAML: {e}"]
  
-    # schema
     for e in sorted(VALIDATOR.iter_errors(doc), key=lambda e: list(e.path)):
         loc = "/".join(str(x) for x in e.path) or "(root)"
         errors.append(f"schema: {loc}: {e.message}")
     if errors:
         return errors 
  
-    # cross-references
-    net_names = {n["name"] for n in doc["networks"]}
+    net_cidr = {n["name"]: n["cidr"] for n in doc["networks"]}
     host_names = [h["name"] for h in doc["hosts"]]
+ 
+    # validate cross-references
     if len(host_names) != len(set(host_names)):
         errors.append("hosts: duplicate host names")
     for f in doc["flags"]:
         if f["host"] not in host_names:
             errors.append(f"flags: host '{f['host']}' is not a defined host")
-    if doc["entrypoint"]["network"] not in net_names:
+    if doc["entrypoint"]["network"] not in net_cidr:
         errors.append(f"entrypoint.network '{doc['entrypoint']['network']}' is not a defined network")
-    for h in doc["hosts"]:
-        for n in h["networks"]:
-            if n not in net_names:
-                errors.append(f"host '{h['name']}' references undefined network '{n}'")
  
+    # ensure the declared run type matches teh host layout
     kinds = [h["kind"] for h in doc["hosts"]]
     rt = doc["runType"]
     if rt == "container" and not (len(doc["hosts"]) == 1 and kinds[0] == "container"):
@@ -77,14 +74,59 @@ def check(box_yaml: Path) -> list[str]:
     elif rt == "network" and len(doc["hosts"]) < 2:
         errors.append("runType 'network' requires at least two hosts")
  
-    # structure
-    if not (box_dir / "target").is_dir():
-        errors.append("missing target/ directory")
+    # validate each host's build method, role, networking, and structure
+    used_ips: dict[str, set] = {}
+    for h in doc["hosts"]:
+        name, kind = h["name"], h["kind"]
+        role = h.get("role")
+        btype = h["build"]["type"]
+ 
+        # ensure the build method is valid for this host
+        if kind == "container":
+            if btype != "dockerfile":
+                errors.append(f"host '{name}': a container must build from source (build.type: dockerfile)")
+            if role:
+                errors.append(f"host '{name}': a container cannot have a role")
+        elif kind == "vm":
+            if role == "domain-controller":
+                if btype != "image":
+                    errors.append(f"host '{name}': a domain-controller must ship a prebuilt image (build.type: image)")
+            else:
+                if btype != "packer":
+                    errors.append(f"host '{name}': a vm must build from source (build.type: packer)")
+        if btype == "image" and role != "domain-controller":
+            errors.append(f"host '{name}': build.type 'image' is only allowed for a domain-controller")
+ 
+        # validate the build definition and require files
+        if btype in ("dockerfile", "packer"):
+            path = h["build"].get("path")
+            if not path:
+                errors.append(f"host '{name}': build.path is required for a source build")
+            elif not (box_dir / path).is_dir():
+                errors.append(f"host '{name}': build path '{path}' does not exist")
+        elif btype == "image":
+            if not h["build"].get("image"):
+                errors.append(f"host '{name}': build.image (filename) is required for an image build")
+ 
+        # validate host IP assignments
+        for attach in h["networks"]:
+            nname, ip = attach["name"], attach["ip"]
+            if nname not in net_cidr:
+                errors.append(f"host '{name}' references undefined network '{nname}'")
+                continue
+            ip_octets = ip.split(".")
+            cidr_third = net_cidr[nname].split(".")[2]
+            if ip_octets[2] != cidr_third:
+                errors.append(f"host '{name}': IP {ip} is not inside network '{nname}' ({net_cidr[nname]})")
+            if ip_octets[3] in ("0", "255"):
+                errors.append(f"host '{name}': IP {ip} cannot be a network or broadcast address")
+            seen = used_ips.setdefault(nname, set())
+            if ip in seen:
+                errors.append(f"network '{nname}': IP {ip} is used by more than one host")
+            seen.add(ip)
+ 
     if not (box_dir / "solver").is_dir():
         errors.append("missing solver/ directory")
-    for h in doc["hosts"]:
-        if not (box_dir / h["build"]).is_dir():
-            errors.append(f"host '{h['name']}': build path '{h['build']}' does not exist")
  
     return errors
  
@@ -114,3 +156,4 @@ def main() -> int:
  
 if __name__ == "__main__":
     sys.exit(main())
+ 

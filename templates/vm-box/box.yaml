@@ -35,19 +35,25 @@ entrypoint:
 # networks
 networks:
   - name: main
+    cidr: 10.10.0.0/24
 
 
 # hosts
 hosts:
   - name: host
-    build: target/host           # dir with your Packer template + provisioning
     kind: vm
     os: linux                    # optional — linux | windows (defaults to linux)
-    networks: [main]
-    healthcheck: "tcp:22"        # optional — tcp:PORT | http:PORT/path | https:PORT/path
+    build:
+      type: packer               # a vm builds from source (packer)
+      path: target/host          # dir with your Packer template + provisioning
+    networks:
+      - name: main
+        ip: 10.10.0.10
+    healthcheck: "tcp:22"        # optional
 
 
 # limits
 limits:
   wallClockSeconds: 3600
-  maxCostUsd: 8.00
+  maxCostUsd: 15.00
+  

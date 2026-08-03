@@ -3,10 +3,10 @@
 A complete reference box showing how a finished box fits together: the manifest (`box.yaml`), the target (`target/`), and the reference solver (`solver/`).
 
 - **Box ID:** bulletin
-- **Difficulty:** medium
+- **Difficulty:** easy
 - **Run type:** container
 - **Target OS:** linux
-- **Category:** web
+- **Categories:** web
 
 
 ## Overview

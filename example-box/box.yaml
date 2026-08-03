@@ -32,14 +32,19 @@ entrypoint:
 # networks
 networks:
   - name: main
+    cidr: 10.10.0.0/24
 
 
 # hosts
 hosts:
   - name: app
-    build: target/app
     kind: container
-    networks: [main]
+    build:
+      type: dockerfile
+      path: target/app
+    networks:
+      - name: main
+        ip: 10.10.0.10
     healthcheck: "http:8000/"
 
 

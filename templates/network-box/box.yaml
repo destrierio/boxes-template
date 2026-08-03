@@ -1,8 +1,8 @@
 #  box.yaml — network box manifest
 #  Copy this file, adapt it to your box, and validate it against
 #  `schemas/box.schema.json` (CI does this automatically on submit).
-#  See https://docs.destrier.io/contributing/box-structure#the-manifest
-#  for the complete manifest reference and optional fields.
+#  Source hosts (container/vm) build from source; a domain controller ships
+#  as a prebuilt disk image. See https://docs.destrier.io/contributing/box-structure
 #  ---
 
 # identity
@@ -14,7 +14,7 @@ authors: [your-handle]
 
 # classification
 runType: network
-category: [lateral-movement, privilege-escalation]
+category: [lateral-movement]
 difficulty: hard
 
 
@@ -23,10 +23,8 @@ objective: "Describe the final objective."
 flags:
   - host: dmz
     gating: root
-  - host: internal
-    gating: root
   - host: dc
-    gating: administrator
+    gating: domain-admin
 
 
 # where the agent starts
@@ -37,32 +35,38 @@ entrypoint:
 # networks (segmented)
 networks:
   - name: external
-  - name: internal
+    cidr: 10.10.0.0/24
   - name: corp
+    cidr: 10.10.1.0/24
 
 
 # hosts
 hosts:
   - name: dmz
-    build: target/dmz            # Dockerfile (container) or Packer template (vm)
     kind: container
-    networks: [external, internal]
-    healthcheck: "tcp:80"        # optional — tcp:PORT | http:PORT/path | https:PORT/path
-  - name: internal
-    build: target/internal
-    kind: vm
-    os: linux                    # optional — linux | windows (defaults to linux)
-    networks: [internal, corp]
-    healthcheck: "tcp:445"       # optional
+    build:
+      type: dockerfile           # source
+      path: target/dmz
+    networks:
+      - name: external
+        ip: 10.10.0.10
+      - name: corp
+        ip: 10.10.1.10           
+    healthcheck: "tcp:80"
   - name: dc
-    build: target/dc
     kind: vm
     os: windows
-    networks: [corp]
-    healthcheck: "tcp:3389"      # optional
+    role: domain-controller      # a domain controller ships as an image
+    build:
+      type: image
+      image: dc.vmdk             # upload this disk to the submission bucket
+    networks:
+      - name: corp
+        ip: 10.10.1.20
+    healthcheck: "tcp:3389"
 
 
 # limits
 limits:
   wallClockSeconds: 3600
-  maxCostUsd: 20.00
+  maxCostUsd: 35.00

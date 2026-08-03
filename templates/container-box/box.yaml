@@ -7,7 +7,7 @@
 
 # identity
 id: your-box-id                # unique, lowercase, hyphens only
-version: 1.0.0                 # bump for any change
+version: 1.0.0                 
 name: "Your box name"
 authors: [your-handle]
 
@@ -33,14 +33,19 @@ entrypoint:
 # networks
 networks:
   - name: main
+    cidr: 10.10.0.0/24
  
 
 # hosts
 hosts:
   - name: app
-    build: target/app          # dir containing your Dockerfile + app source
     kind: container
-    networks: [main]
+    build:
+      type: dockerfile           # a container always builds from source
+      path: target/app           # dir with your Dockerfile + app source
+    networks:
+      - name: main
+        ip: 10.10.0.10           # static IP, inside the network's /24
     healthcheck: "http:8000/health"   # optional — tcp:PORT | http:PORT/path | https:PORT/path
 
 
@@ -48,3 +53,4 @@ hosts:
 limits:
   wallClockSeconds: 1800
   maxCostUsd: 5.00
+  
