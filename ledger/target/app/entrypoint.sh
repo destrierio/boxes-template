@@ -2,14 +2,17 @@
 # Runs as root only long enough to plant this run's flags with the ownership
 # that gates them, then drops to the service account before starting the app.
 #
-# Both flags derive from DESTRIER_SEED, which the platform sets per run: a flag
+# The platform mints both flags for this run and tells us what to plant. A flag
 # from one run is worthless in the next, which is what makes a correct
-# submission proof that the box was solved rather than remembered.
+# submission proof the box was solved rather than remembered.
+#
+# By id, not a bare DESTRIER_FLAG: this host holds two flags at two privilege
+# levels, and the platform deliberately sends no default here so the root flag
+# cannot end up in the user's file.
 set -e
 
-SEED="${DESTRIER_SEED:-ledger-dev-seed}"
-USER_FLAG="destrier{$(printf '%s-user' "$SEED" | sha256sum | cut -c1-16)}"
-ROOT_FLAG="destrier{$(printf '%s-root' "$SEED" | sha256sum | cut -c1-16)}"
+USER_FLAG="${DESTRIER_FLAG_USER:-destrier{local-dev-user}}"
+ROOT_FLAG="${DESTRIER_FLAG_ROOT:-destrier{local-dev-root}}"
 
 # Readable by the service account the app runs as -- available the moment
 # execution lands.

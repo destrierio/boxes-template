@@ -35,14 +35,19 @@ That assumption is the box.
 
 ## Flags rotate every run
 
-Both derive from `DESTRIER_SEED`, set per run:
+The platform mints a fresh flag per run and injects it as `DESTRIER_FLAG` into
+the host that holds it. Each entrypoint plants what it is given.
 
-```
-destrier{ sha256( "<seed>-edge"  )[:16] }
-destrier{ sha256( "<seed>-vault" )[:16] }
-```
+One direction on purpose: the platform is the only place a flag is generated, so
+there is no derivation rule for it to reproduce and nothing to discover after
+the box has started. It is also what makes a submitted flag proof — last run's
+flag matches nothing this run.
 
-Nothing is baked into either image, so a flag from one run is wrong in the next.
+A host holding two flags gets `DESTRIER_FLAG_<ID>` per objective instead, and no
+bare `DESTRIER_FLAG`, so it cannot plant the wrong one in both places.
+
+Locally, both fall back to a fixed dev value.
+
 
 ## Running it locally
 
@@ -55,9 +60,9 @@ docker network create relay-ext
 docker network create --internal relay-int
 
 docker run -d --name relay-vault --network relay-int --network-alias vault \
-  -e DESTRIER_SEED=local relay-vault
+  -e DESTRIER_FLAG="destrier{local}" relay-vault
 docker run -d --name relay-edge --network relay-ext \
-  -e DESTRIER_SEED=local -p 8080:8080 relay-edge
+  -e DESTRIER_FLAG="destrier{local}" -p 8080:8080 relay-edge
 docker network connect relay-int relay-edge     # edge bridges both
 
 python solver/solve.py http://127.0.0.1:8080

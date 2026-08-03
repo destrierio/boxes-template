@@ -15,7 +15,7 @@ import sys
 
 import requests
 
-FLAG_RE = re.compile(r"destrier\{[0-9a-f]{16}\}")
+FLAG_RE = re.compile(r"destrier\{[0-9a-f]{16,64}\}")
 TIMEOUT = 20
 
 
