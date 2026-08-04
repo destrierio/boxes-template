@@ -10,9 +10,12 @@ For each box, validates that:
   1. The manifest matches the schema.
   2. All manifest cross-references are valid.
   3. The run type matches the host definitions.
-  4. Each host uses the correct build method.
-  5. Networks and host IPs are valid.
-  6. The required directory structure is present.
+  4. Networks and host IPs are valid.
+  5. The required directory structure is present.
+
+Which build method suits which kind of host is the schema's job, not this
+script's — `boxr box validate` checks the schema alone, so a rule that lives
+only here is one an author meets in CI instead of before uploading.
 
 Exits with status 0 if all checks pass, otherwise 1.
 """
@@ -77,49 +80,27 @@ def check(box_yaml: Path) -> list[str]:
     # validate each host's build method, role, networking, and structure
     used_ips: dict[str, set] = {}
     for h in doc["hosts"]:
-        name, kind = h["name"], h["kind"]
-        role = h.get("role")
+        name = h["name"]
         btype = h["build"]["type"]
- 
-        # ensure the build method is valid for this host
-        if kind == "container":
-            if btype != "dockerfile":
-                errors.append(f"host '{name}': a container must build from source (build.type: dockerfile)")
-            if role:
-                errors.append(f"host '{name}': a container cannot have a role")
-        elif kind == "vm":
-            if role == "domain-controller":
-                if btype != "image":
-                    errors.append(f"host '{name}': a domain-controller must ship a prebuilt image (build.type: image)")
-            else:
-                if btype != "packer":
-                    errors.append(f"host '{name}': a vm must build from source (build.type: packer)")
-        if btype == "image" and role != "domain-controller":
-            errors.append(f"host '{name}': build.type 'image' is only allowed for a domain-controller")
- 
-        # validate the build definition and require files
-        if btype in ("dockerfile", "packer"):
-            path = h["build"].get("path")
-            if not path:
-                errors.append(f"host '{name}': build.path is required for a source build")
-            elif not (box_dir / path).is_dir():
-                errors.append(f"host '{name}': build path '{path}' does not exist")
-        elif btype == "image":
-            image = h["build"].get("image")
-            if not image:
-                errors.append(f"host '{name}': build.image is required for an image build")
-            else:
-                # The bytes live in the platform's artifact store, so there is
-                # no local path to check and no way to confirm the digest from
-                # here — that happens on upload. What IS checkable is
-                # `builtFrom`: a real path a reviewer follows to the template
-                # behind an otherwise opaque image, and worth catching before
-                # review rather than during it.
-                built_from = image.get("builtFrom")
-                if built_from is not None and not (box_dir / built_from).is_dir():
-                    errors.append(
-                        f"host '{name}': build.image.builtFrom '{built_from}' does not exist"
-                    )
+
+        # Which build method suits which kind of host is the SCHEMA's job: a
+        # container must use dockerfile, a vm may use packer or image, and a
+        # domain controller must use image. Restating those here would be a
+        # second source of truth, and `boxr box validate` checks the schema
+        # alone — so a rule living only in Python is one an author meets in CI
+        # instead of before uploading several gigabytes.
+        #
+        # What is left is the part no schema can check: the filesystem.
+        path = h["build"].get("path")
+        if btype in ("dockerfile", "packer") and not path:
+            errors.append(f"host '{name}': build.path is required for a source build")
+        # An `image` host may also name the template it was built from. Optional,
+        # because a box may ship an image it did not build here — but a path that
+        # is named and does not exist is a broken trail to the only thing that
+        # explains an otherwise opaque disk, and is worth catching before review
+        # rather than during it.
+        if path is not None and not (box_dir / path).is_dir():
+            errors.append(f"host '{name}': build path '{path}' does not exist")
  
         # validate host IP assignments
         for attach in h["networks"]:

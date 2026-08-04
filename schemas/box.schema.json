@@ -206,11 +206,11 @@
                   "packer",
                   "image"
                 ],
-                "description": "`dockerfile` builds a container from source, `packer` builds a virtual machine from source, and `image` uses a prebuilt disk image (domain controllers only)."
+                "description": "How this host is produced. `dockerfile` builds a container from source, `packer` builds a virtual machine from source, and `image` ships a prebuilt disk image you upload with `boxr box push`. A container must use `dockerfile`; a virtual machine may use either `packer` or `image`, whichever suits the box."
               },
               "path": {
                 "type": "string",
-                "description": "Path to the build definition. Required for `dockerfile` and `packer`."
+                "description": "Path to the build definition. Required for `dockerfile` and `packer`. Optional but recommended for `image`: it is how a reviewer finds the template behind an otherwise opaque disk image."
               },
               "image": {
                 "type": "object",
@@ -220,7 +220,7 @@
                   "format",
                   "sizeBytes"
                 ],
-                "description": "The prebuilt disk image, referenced by content digest. Written by `boxr box push`; do not fill it in by hand. Required when `type` is `image`.",
+                "description": "The uploaded disk image, referenced by content digest. Written by `boxr box push`; do not fill it in by hand. Absent until the first push, which is why it is not required — a box you have written but not yet pushed still validates.",
                 "properties": {
                   "artifact": {
                     "type": "string",
@@ -238,10 +238,6 @@
                     "type": "integer",
                     "minimum": 1,
                     "description": "The uploaded image's size in bytes, checked against the stored object."
-                  },
-                  "builtFrom": {
-                    "type": "string",
-                    "description": "Optional. The build definition this image was produced from, for example target/dc. The platform never reads it; it is how a reviewer finds the Packer template behind an otherwise opaque image."
                   }
                 }
               }
@@ -264,23 +260,6 @@
                 "then": {
                   "required": [
                     "path"
-                  ]
-                }
-              },
-              {
-                "if": {
-                  "properties": {
-                    "type": {
-                      "const": "image"
-                    }
-                  },
-                  "required": [
-                    "type"
-                  ]
-                },
-                "then": {
-                  "required": [
-                    "image"
                   ]
                 }
               }
@@ -315,7 +294,64 @@
             "pattern": "^(tcp:[0-9]+|http:[0-9]+(/.*)?|https:[0-9]+(/.*)?)$",
             "description": "Optional. How Destrier verifies the host is ready before the evaluation begins. Omit if there is no service to check. Formats: `tcp:PORT`, `http:PORT/path`, or `https:PORT/path`."
           }
-        }
+        },
+        "allOf": [
+          {
+            "if": {
+              "properties": { "kind": { "const": "container" } },
+              "required": ["kind"]
+            },
+            "then": {
+              "properties": {
+                "build": {
+                  "properties": {
+                    "type": {
+                      "const": "dockerfile",
+                      "description": "A container is built from a Dockerfile. It cannot boot a disk image."
+                    }
+                  }
+                },
+                "role": false
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": { "kind": { "const": "vm" } },
+              "required": ["kind"]
+            },
+            "then": {
+              "properties": {
+                "build": {
+                  "properties": {
+                    "type": {
+                      "enum": ["packer", "image"],
+                      "description": "A virtual machine is either built from a Packer template or shipped as a prebuilt disk image."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": { "role": { "const": "domain-controller" } },
+              "required": ["role"]
+            },
+            "then": {
+              "properties": {
+                "build": {
+                  "properties": {
+                    "type": {
+                      "const": "image",
+                      "description": "A domain controller ships a prebuilt image: its install is long, licensed, and not reproducible in CI."
+                    }
+                  }
+                }
+              }
+            }
+          }
+        ]
       }
     },
     "limits": {

@@ -63,11 +63,11 @@ hosts:
     role: domain-controller
     build:
       type: image
-      image:
+      path: target/dc            # optional — where a reviewer finds the template
+      image:                     # written by `boxr box push`; absent until then
         artifact: sha256:9f2c1e00000000000000000000000000000000000000000000000000000000ff
         format: qcow2
         sizeBytes: 42949672960
-        builtFrom: target/dc     # optional — where a reviewer finds the template
     networks:
       - name: corp
         ip: 10.10.1.20

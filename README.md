@@ -35,26 +35,79 @@ When your box is ready and the validation check passes:
 > Keep your repository private. It contains your reference exploit and other review-only material.
 
 
-## Domain controller boxes
+## How a host is built
 
-If your box includes a **domain controller**, its disk image is uploaded separately. Building Active Directory from source for every evaluation is too slow, so domain controllers use a prebuilt image (`build.type: image`).
+A **virtual machine host** is built one of two ways, and the choice is yours:
 
-1. Request an upload URL using your access token and box ID:
-   ```bash
-   curl -s -X POST https://upload.destrier.io/request-upload \
-     -H "Authorization: Bearer <your-token>" \
-     -d '{"box_id":"<your-box-id>","filename":"dc.vmdk"}'
-   ```
-   The response contains a short-lived upload URL.
+- `build.type: packer` — built from a Packer template in your box, from source.
+- `build.type: image` — a disk image you built however you like and uploaded with `boxr box push`.
 
-2. Upload the image to the returned URL:
-   ```bash
-   curl -X PUT --upload-file dc.vmdk "<upload-url>"
-   ```
+A **container host** is always `build.type: dockerfile`.
 
-3. Set `build.image` in `box.yaml` to the uploaded filename (for example, `dc.vmdk`).
+A **domain controller** is the one host that must use `build.type: image`: building Active Directory from source for every evaluation is too slow, and the install is licensed and not reproducible in CI.
 
-Your access token is provided during onboarding. Everything else—including `box.yaml`, `solver/`, and all source-built hosts—is submitted through your repository as usual.
+Uploading is one command from your box directory. There is no URL to request, no
+filename to set and no digest to type:
+
+```bash
+boxr box push          # or `boxr box push <host>` for one host
+```
+
+It converts the disk to qcow2 if it is not already, fingerprints it, uploads
+resumably, and writes `build.image` into `box.yaml` for you. Interrupt it and run
+it again — it resumes. Run it after a rebuild and it uploads only what changed.
+
+## Planting flags
+
+**The platform mints a fresh flag for every run and tells your box what it is.
+Your box plants it.** Nothing is baked into your image, and nothing is derived
+from a shared seed — so a flag captured in one run is worthless in the next.
+
+Each flag reaches exactly the host that holds it, named after its objective:
+
+| variable                | when                                       |
+| ----------------------- | ------------------------------------------ |
+| `DESTRIER_FLAG_<ID>`    | always, one per flag on this host          |
+| `DESTRIER_FLAG`         | only when this host holds exactly one flag |
+
+The bare `DESTRIER_FLAG` is deliberately absent on a host with two flags, so a
+box with a user flag and a root flag cannot plant one where the other belongs.
+
+**Container hosts** get these as environment variables. Read them in your
+entrypoint and write each flag where its gating says it should live.
+
+**Virtual machine hosts** read them from QEMU's `fw_cfg`, because a booted disk
+has no environment to inherit. The file is root-only, which is what keeps a user
+flag out of reach of a user shell:
+
+```sh
+#!/bin/sh
+# Run this once at boot, as root, before your services start.
+FW=/sys/firmware/qemu_fw_cfg/by_name/opt/destrier/flags/raw
+[ -r "$FW" ] || exit 0
+
+while IFS='=' read -r key value; do
+  [ -n "$key" ] && export "$key=$value"
+done < "$FW"
+
+# Plant each flag where its gating says it belongs, and set the ownership that
+# makes that gating real.
+printf '%s\n' "$DESTRIER_FLAG_ROOT" > /root/flag.txt
+chmod 600 /root/flag.txt
+chown root:root /root/flag.txt
+
+printf '%s\n' "$DESTRIER_FLAG_USER" > /home/alice/flag.txt
+chmod 640 /home/alice/flag.txt
+chown alice:alice /home/alice/flag.txt
+```
+
+⚠️ **Your guest kernel must be 4.6 or newer** (`CONFIG_FW_CFG_SYSFS`). Debian,
+Ubuntu, Alpine and RHEL all ship it enabled. If `/sys/firmware/qemu_fw_cfg` does
+not exist in your image, the flags cannot reach it and every run of your box
+will score zero — check for the directory before you submit.
+
+Everything else — `box.yaml`, `solver/`, and all source-built hosts — is
+submitted through your repository as usual.
 
 
 ## Learn more

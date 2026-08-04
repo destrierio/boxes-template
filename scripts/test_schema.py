@@ -26,7 +26,6 @@ IMAGE = {
     "artifact": DIGEST,
     "format": "qcow2",
     "sizeBytes": 42949672960,
-    "builtFrom": "target/dc",
 }
 
 # A minimal manifest every case below varies one field of.
@@ -72,11 +71,28 @@ CASES: list[tuple[str, dict, bool]] = [
     ("dockerfile source build", with_build({"type": "dockerfile", "path": "target/app"}, kind="container"), True),
     # The uploaded-image branch.
     ("image build", with_build({"type": "image", "image": IMAGE}, role="domain-controller"), True),
+    # ⚠️ Any vm may ship a prebuilt image, not only a domain controller. The
+    # restriction used to be role-based, which left the format with no box that
+    # both validated and ran: nothing builds packer or dockerfile hosts yet, so
+    # image was the only shape the platform could boot — and it was reserved for
+    # a host almost no box has.
+    ("a plain vm may ship an image", with_build({"type": "image", "image": IMAGE}), True),
     (
-        "image without builtFrom",
-        with_build({"type": "image", "image": {k: v for k, v in IMAGE.items() if k != "builtFrom"}}, role="domain-controller"),
+        "an image host may name the template it came from",
+        with_build({"type": "image", "image": IMAGE, "path": "target/host"}),
         True,
     ),
+    # A box that has been written but never pushed. `build.image` is filled in by
+    # `boxr box push`, so requiring it here would mean an author cannot validate
+    # until after uploading several gigabytes.
+    ("image build before the first push", with_build({"type": "image"}), True),
+    # A container has no disk to boot, and a vm has no Dockerfile to build.
+    ("container shipping a disk image", with_build({"type": "image", "image": IMAGE}, kind="container"), False),
+    ("vm built from a Dockerfile", with_build({"type": "dockerfile", "path": "target/host"}), False),
+    ("container with a role", with_build({"type": "dockerfile", "path": "target/app"}, kind="container", role="domain-controller"), False),
+    # A domain controller's install is long, licensed and not reproducible in CI,
+    # so it is the one host that MUST ship an image rather than build.
+    ("domain controller built with packer", with_build({"type": "packer", "path": "target/dc"}, role="domain-controller"), False),
     # ⚠️ The regression this file exists for. A filename here is how the format
     # started, and it is what a digest replaced: a name can be repointed at
     # different bytes, silently invalidating every score already recorded
