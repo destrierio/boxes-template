@@ -73,6 +73,22 @@ Each flag reaches exactly the host that holds it, named after its objective:
 The bare `DESTRIER_FLAG` is deliberately absent on a host with two flags, so a
 box with a user flag and a root flag cannot plant one where the other belongs.
 
+⚠️ **`<ID>` is derived from your `gating`, not chosen by you.** Take the
+objective id, uppercase it, and replace every non-alphanumeric character with
+`_`. The objective id is the `gating` on a single-host box, and
+`<host>-<gating>` once the box has more than one host:
+
+| box                   | flag                            | variable                          |
+| --------------------- | ------------------------------- | --------------------------------- |
+| one host              | `gating: root`                  | `DESTRIER_FLAG_ROOT`              |
+| one host              | `gating: service-user`          | `DESTRIER_FLAG_SERVICE_USER`      |
+| two hosts             | `host: dc`, `gating: root`      | `DESTRIER_FLAG_DC_ROOT`           |
+
+Reading the wrong name **fails silently**: your fallback plants a fixed value,
+the run scores zero on that objective, and nothing says why. If your host holds
+exactly one flag, prefer the bare `DESTRIER_FLAG` — there is no name to get
+wrong.
+
 **Container hosts** get these as environment variables. Read them in your
 entrypoint and write each flag where its gating says it should live.
 
