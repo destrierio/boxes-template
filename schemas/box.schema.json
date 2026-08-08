@@ -67,7 +67,7 @@
       },
       "minItems": 1,
       "uniqueItems": true,
-      "description": "The skill areas covered by the box, for example web, privilege-escalation, lateral-movement, or binary-exploitation. Use lowercase words separated by hyphens."
+      "description": "The skill areas covered by the box, for example web, privilege-escalation, lateral-movement, or binary-exploitation. Use lowercase words separated by hyphens. The first entry is the primary category."
     },
     "difficulty": {
       "type": "string",
@@ -77,7 +77,7 @@
         "hard",
         "insane"
       ],
-      "description": "The validated difficulty of the box."
+      "description": "The validated difficulty of the box. It also sets the run's wall-clock and cost budget."
     },
     "objective": {
       "type": "string",
@@ -115,7 +115,7 @@
           },
           "value": {
             "type": "string",
-            "pattern": "^destrier\\{(?=[a-z0-9_]*[0-9])[a-z0-9_]+\\}$",
+            "pattern": "^destrier\\{[a-z0-9_]*[0-9][a-z0-9_]*\\}$",
             "description": "The static flag value to submit. Must match the value reachable at the proof point and use the `destrier{...}` format with 1337-style text inside the braces."
           }
         }
@@ -206,17 +206,100 @@
             "type": "object",
             "additionalProperties": false,
             "minProperties": 1,
-            "description": "How the host is built. Every host is built from source except a domain controller, which ships a prebuilt disk image.",
+            "description": "How the host is built. Containers are built from `source`; virtual machines use either `source` or a prebuilt `image`, and a domain controller must use `image`.",
             "properties": {
               "source": {
                 "type": "string",
                 "minLength": 1,
-                "description": "Relative path within the box to a Dockerfile directory for containers or a Packer definition directory for virtual machines. Required for every host except a domain controller."
+                "description": "Relative path within the box to a Dockerfile directory for containers or a Packer definition directory for virtual machines."
+              },
+              "publishedImage": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "image",
+                  "digest"
+                ],
+                "description": "The container image built from `build.source` and published to Destrier's managed registry. Written by `boxr box submit`; do not fill it in by hand.",
+                "properties": {
+                  "image": {
+                    "type": "string",
+                    "minLength": 1,
+                    "description": "The fully-qualified repository the image was pushed to, with no tag or digest. The platform chooses it."
+                  },
+                  "digest": {
+                    "type": "string",
+                    "pattern": "^sha256:[a-f0-9]{64}$",
+                    "description": "The image manifest digest the registry resolved for the pushed tag, not one computed on the author's machine."
+                  },
+                  "provenance": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "minProperties": 1,
+                    "description": "A record of what produced this image. Every field is optional, and provenance does not guarantee that rebuilding the source returns this digest.",
+                    "properties": {
+                      "source": {
+                        "type": "string",
+                        "minLength": 1,
+                        "description": "The `build.source` directory that was actually built. Not updated if `build.source` is edited afterwards."
+                      },
+                      "contextDigest": {
+                        "type": "string",
+                        "pattern": "^sha256:[a-f0-9]{64}$",
+                        "description": "A content hash of the build-context directory at build time: every file beneath `build.source`, hashed by relative path, executable bit, and content. `.dockerignore` is not applied."
+                      },
+                      "builder": {
+                        "type": "string",
+                        "minLength": 1,
+                        "description": "What performed the build, for example `boxr/0.1.0` for a build on the author's machine."
+                      }
+                    }
+                  }
+                }
               },
               "image": {
-                "type": "string",
-                "minLength": 1,
-                "description": "Relative path within the box to the prebuilt disk image. Used only by a domain controller, which has no source."
+                "description": "The prebuilt disk image this host boots, written as a relative path within the box. `boxr box push` uploads the file and rewrites this key into the digest form below.",
+                "oneOf": [
+                  {
+                    "type": "string",
+                    "minLength": 1,
+                    "description": "Relative path within the box to the disk image, as the author writes it."
+                  },
+                  {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "artifact",
+                      "format",
+                      "sizeBytes"
+                    ],
+                    "description": "The uploaded image, referenced by content digest. Written by `boxr box push`; do not fill it in by hand.",
+                    "properties": {
+                      "artifact": {
+                        "type": "string",
+                        "pattern": "^sha256:[a-f0-9]{64}$",
+                        "description": "The uploaded disk image's content digest, computed over the file's bytes."
+                      },
+                      "format": {
+                        "type": "string",
+                        "enum": [
+                          "qcow2"
+                        ],
+                        "description": "The disk image format. `boxr box push` converts other formats to qcow2 before uploading."
+                      },
+                      "sizeBytes": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "description": "The uploaded image's size in bytes, checked against the stored object."
+                      },
+                      "path": {
+                        "type": "string",
+                        "minLength": 1,
+                        "description": "Relative path within the box to the prebuilt disk image. Used only by a domain controller, which has no source."
+                      }
+                    }
+                  }
+                ]
               }
             }
           },
@@ -291,9 +374,22 @@
                   }
                 }
               }
-            },
-            "else": {
+            }
+          },
+          {
+            "if": {
+              "required": [
+                "kind"
+              ],
               "properties": {
+                "kind": {
+                  "const": "container"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "role": false,
                 "build": {
                   "required": [
                     "source"
@@ -303,6 +399,51 @@
                       "image"
                     ]
                   }
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "required": [
+                "kind"
+              ],
+              "properties": {
+                "kind": {
+                  "const": "vm"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "build": {
+                  "not": {
+                    "required": [
+                      "publishedImage"
+                    ]
+                  },
+                  "oneOf": [
+                    {
+                      "required": [
+                        "source"
+                      ],
+                      "not": {
+                        "required": [
+                          "image"
+                        ]
+                      }
+                    },
+                    {
+                      "required": [
+                        "image"
+                      ],
+                      "not": {
+                        "required": [
+                          "source"
+                        ]
+                      }
+                    }
+                  ]
                 }
               }
             }

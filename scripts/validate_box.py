@@ -2,19 +2,20 @@
 """
 Validate Destrier boxes.
 
-Validates every real `box.yaml` in the repository, including the shipped
-examples. Starter manifests under `templates/` are skipped.
+Validates the shipped examples and every contributor `box.yaml`. Starter
+manifests under `templates/` are excluded because they are intentionally
+incomplete until copied into a box directory.
 
 For each box, checks that:
 
 1. The manifest follows the required format.
-2. Manifest references are valid and unambiguous.
+2. All references within the manifest are valid and unambiguous.
 3. The run type is compatible with the defined hosts.
 4. Build inputs exist, use the expected format, and stay inside the box.
 5. Network settings and host IP addresses are valid.
-6. Required files and directories are present.
+6. The required files and directories are present.
 7. Static flag values are unique.
-8. The `competitionId/id` pair is unique for storage routing.
+8. The competition and box identity route to a unique storage namespace.
 
 Exits with status 0 if all checks pass, otherwise 1.
 """
@@ -35,7 +36,14 @@ VALIDATOR = Draft202012Validator(SCHEMA)
 RESERVED = {"templates"}
 
 
-def find_boxes():
+def find_boxes(roots: list[Path] | None = None):
+    if roots:
+        for root in roots:
+            if root.is_file():
+                yield root.resolve()
+            else:
+                yield from sorted(p.resolve() for p in root.rglob("box.yaml"))
+        return
     for path in sorted(ROOT.rglob("box.yaml")):
         relative_path = path.relative_to(ROOT)
         if relative_path.parts and relative_path.parts[0] in RESERVED:
@@ -117,9 +125,14 @@ def check(box_yaml: Path) -> list[str]:
     for flag in doc["flags"]:
         if flag["host"] not in host_names:
             errors.append(f"flags: host '{flag['host']}' is not a defined host")
+
+    # Flags are static, so two flags sharing a value means capturing one hands
+    # over the other -- across hosts, and across gating levels that are supposed
+    # to represent different work.
     flag_values = [flag["value"] for flag in doc["flags"]]
     for value in duplicates(flag_values):
         errors.append(f"flags: duplicate flag value '{value}'")
+
     if doc["entrypoint"]["network"] not in net_cidr:
         errors.append(
             f"entrypoint.network '{doc['entrypoint']['network']}' is not a defined network"
@@ -143,6 +156,7 @@ def check(box_yaml: Path) -> list[str]:
         role = host.get("role")
         source = host["build"].get("source")
         image = host["build"].get("image")
+        image_path = image if isinstance(image, str) else (image or {}).get("path")
 
         if role == "domain-controller":
             if kind != "vm" or host.get("os") != "windows":
@@ -158,11 +172,15 @@ def check(box_yaml: Path) -> list[str]:
                     f"host '{name}': a domain-controller cannot provide build.source"
                 )
         else:
-            if not source:
-                errors.append(f"host '{name}': build.source is required")
-            if image:
+            if source and image:
                 errors.append(
-                    f"host '{name}': build.image is only for a domain-controller"
+                    f"host '{name}': declare build.source or build.image, not both"
+                )
+            elif not source and not image:
+                errors.append(f"host '{name}': build.source or build.image is required")
+            elif image and kind != "vm":
+                errors.append(
+                    f"host '{name}': only a vm can ship a prebuilt disk image"
                 )
 
         if source:
@@ -183,12 +201,18 @@ def check(box_yaml: Path) -> list[str]:
                         f"host '{name}': VM build source '{source}' has no Packer definition"
                     )
 
-        if image:
-            image_path = box_path(
-                box_dir, image, f"host '{name}': build.image", errors
+        if image_path:
+            resolved_image = box_path(
+                box_dir, image_path, f"host '{name}': build.image", errors
             )
-            if image_path is not None and not image_path.is_file():
-                errors.append(f"host '{name}': build image '{image}' does not exist")
+            # An already-pushed image may legitimately have been cleaned up: the
+            # platform holds the bytes by digest, the path is only a breadcrumb.
+            if (
+                resolved_image is not None
+                and isinstance(image, str)
+                and not resolved_image.is_file()
+            ):
+                errors.append(f"host '{name}': build image '{image_path}' does not exist")
 
         attached_networks: set[str] = set()
         for attachment in host["networks"]:
@@ -249,8 +273,13 @@ def manifest_identity(box_yaml: Path) -> tuple[str, str]:
     return doc["competitionId"], doc["id"]
 
 
-def main() -> int:
-    boxes = list(find_boxes())
+def main(argv: list[str] | None = None) -> int:
+    roots = [Path(a) for a in (argv if argv is not None else sys.argv[1:])]
+    for root in roots:
+        if not root.exists():
+            print(f"no such path: {root}")
+            return 1
+    boxes = list(find_boxes(roots))
     if not boxes:
         print("no box found to validate")
         return 1
@@ -268,7 +297,7 @@ def main() -> int:
     for box, competition_id, box_id in valid_identities:
         identity = f"{competition_id}/{box_id}"
         if identity in seen_identities:
-            original = seen_identities[identity].relative_to(ROOT)
+            original = seen_identities[identity]
             box_errors[box].append(
                 f"identity: duplicate competitionId/id '{identity}' also used by {original}"
             )
@@ -277,7 +306,10 @@ def main() -> int:
 
     failed = 0
     for box in boxes:
-        relative_path = box.relative_to(ROOT)
+        try:
+            relative_path = box.relative_to(ROOT)
+        except ValueError:
+            relative_path = box
         errors = box_errors[box]
         if errors:
             failed += 1
