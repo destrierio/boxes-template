@@ -11,7 +11,7 @@ from urllib.parse import quote
 
 import requests
 
-FLAG_RE = re.compile(r"leet\{[^{}\s]+\}")
+FLAG_RE = re.compile(r"destrier\{(?=[a-z0-9_]*[0-9])[a-z0-9_]+\}")
 INTERNAL_BASE = "http://10.10.1.20:8001"
 
 

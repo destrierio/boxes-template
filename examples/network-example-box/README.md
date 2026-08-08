@@ -36,7 +36,7 @@ The endpoint accepts a user-supplied URL and makes the request from the gateway 
 - **Objective:** Use the gateway to reach the internal workstation and retrieve its flag
 - **Host:** `workstation`
 - **Gating:** `user`
-- **Flag:** `leet{relay_yard_workstation_user}`
+- **Flag:** `destrier{r3l4y_y4rd_55rf_p1v07}`
 - **Proof point:** The workstation's internal-only `/flag` endpoint
 
 

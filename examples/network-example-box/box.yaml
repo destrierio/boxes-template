@@ -18,7 +18,7 @@ objective: "Abuse the gateway fetcher to reach the internal workstation and read
 flags:
   - host: workstation
     gating: user
-    value: "leet{relay_yard_workstation_user}"
+    value: "destrier{r3l4y_y4rd_55rf_p1v07}"
 
 # Networking
 entrypoint:

@@ -18,10 +18,10 @@ objective: "Describe the final objective."
 flags:
   - host: dmz
     gating: root
-    value: "leet{replace_me_dmz_root}"
+    value: "destrier{dmz_p1v07_c0mpl373}"
   - host: dc
     gating: domain-admin
-    value: "leet{replace_me_dc_domain_admin}"
+    value: "destrier{d0m41n_4dm1n_pr00f}"
 
 # Networking
 entrypoint:

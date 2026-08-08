@@ -11,7 +11,7 @@ mkdir -p /opt/relay-yard
 cat >/opt/relay-yard/internal_api.py <<'PY'
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
-FLAG = "leet{relay_yard_workstation_user}"
+FLAG = "destrier{r3l4y_y4rd_55rf_p1v07}"
 
 
 class Handler(BaseHTTPRequestHandler):

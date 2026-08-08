@@ -18,7 +18,7 @@ objective: "Exploit path traversal in the file portal and read the flag as the a
 flags:
   - host: host
     gating: user
-    value: "leet{signal_desk_user}"
+    value: "destrier{51gn4l_d35k_p47h_7r4v3r54l}"
 
 # Networking
 entrypoint:

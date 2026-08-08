@@ -19,7 +19,7 @@ from pathlib import Path
 from urllib.parse import parse_qs, urlparse
 
 ROOT = Path("/opt/signal-desk/files")
-FLAG = "leet{signal_desk_user}"
+FLAG = "destrier{51gn4l_d35k_p47h_7r4v3r54l}"
 Path("/opt/signal-desk/flag.txt").write_text(FLAG + "\n")
 
 

@@ -87,7 +87,7 @@
     "flags": {
       "type": "array",
       "minItems": 1,
-      "description": "The flags available in the box. Each flag represents a capture point, such as a user or root flag on a host, or one flag per host in a multi-host box. Contributors provide static flag values in `box.yaml` and place the same exact values in the target. Flags must use the `leet{...}` format and are submitted exactly as written.",
+      "description": "The flags available in the box. Each flag represents a capture point, such as a user or root flag on a host, or one flag per host in a multi-host box. Contributors provide static flag values in `box.yaml` and place the same exact values in the target. Flags must use the `destrier{...}` format with 1337-style text inside the braces and are submitted exactly as written.",
       "items": {
         "type": "object",
         "additionalProperties": false,
@@ -115,8 +115,8 @@
           },
           "value": {
             "type": "string",
-            "pattern": "^leet\\{[^{}\\s]+\\}$",
-            "description": "The static flag value to submit. Must match the value reachable at the proof point and use the `leet{...}` format."
+            "pattern": "^destrier\\{(?=[a-z0-9_]*[0-9])[a-z0-9_]+\\}$",
+            "description": "The static flag value to submit. Must match the value reachable at the proof point and use the `destrier{...}` format with 1337-style text inside the braces."
           }
         }
       }

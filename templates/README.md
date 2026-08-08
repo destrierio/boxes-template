@@ -41,13 +41,13 @@ Document each objective, including where it is located and what level of access 
 - **Objective:** `<objective name>`
 - **Host:** `<host>`
 - **Gating:** `<user | root | service-user | administrator | system | domain-admin>`
-- **Flag:** `leet{<unique_static_flag>}`
+- **Flag:** `destrier{<1337_style_text>}`
 - **Proof point:** `<where the flag becomes accessible>`
 
-Commit the static flag in `box.yaml` and place the same exact value at the proof point. Flags must use `leet{...}` and are submitted exactly as written.
+Commit the static flag in `box.yaml` and place the same exact value at the proof point. Flags must use `destrier{...}` with 1337-style text inside the braces and are submitted exactly as written.
 
 
-> Replace the sample flag before submitting the box.
+> Use one unique static flag for each objective before submitting the box.
 
 
 ## Notes

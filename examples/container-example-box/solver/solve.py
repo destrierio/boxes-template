@@ -10,7 +10,7 @@ import re
 import sys
 import requests
 
-FLAG_RE = re.compile(r"leet\{[^{}\s]+\}")
+FLAG_RE = re.compile(r"destrier\{(?=[a-z0-9_]*[0-9])[a-z0-9_]+\}")
 
 # Reads /flag.txt through Jinja2's builtins. This avoids the blocked
 # Command-execution gadgets (popen, system, subprocess, __import__).
