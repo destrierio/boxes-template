@@ -1,0 +1,39 @@
+# Container example manifest
+# Docs: https://docs.destrier.io/contributing/box-structure#the-manifest
+
+# Identity
+id: bulletin
+competitionId: reference-examples
+version: 1.0.0
+name: "Bulletin"
+authors: [destrier-team]
+
+# Classification
+runType: container
+category: [web]
+difficulty: easy
+
+# Objectives
+objective: "Achieve server-side template injection (SSTI) and read the flag as the web service user"
+flags:
+  - host: app
+    gating: service-user
+
+# Networking
+entrypoint:
+  network: main
+
+networks:
+  - name: main
+    cidr: 10.10.0.0/24
+
+# Hosts
+hosts:
+  - name: app
+    kind: container
+    build:
+      source: target/app         
+    networks:
+      - name: main
+        ip: 10.10.0.10
+    healthcheck: "http:8000/"

@@ -1,0 +1,40 @@
+# Virtual machine example manifest
+# Docs: https://docs.destrier.io/contributing/box-structure#configure-box-yaml
+
+# Identity
+id: signal-desk
+competitionId: reference-examples
+version: 1.0.0
+name: "Signal Desk"
+authors: [destrier-team]
+
+# Classification
+runType: vm
+category: [web, file-disclosure]
+difficulty: easy
+
+# Objectives
+objective: "Exploit path traversal in the file portal and read the flag as the analyst user"
+flags:
+  - host: host
+    gating: user
+
+# Networking
+entrypoint:
+  network: main
+
+networks:
+  - name: main
+    cidr: 10.10.2.0/24
+
+# Hosts
+hosts:
+  - name: host
+    kind: vm
+    os: linux
+    build:
+      source: target/host
+    networks:
+      - name: main
+        ip: 10.10.2.10
+    healthcheck: "http:8000/health"

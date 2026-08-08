@@ -1,0 +1,39 @@
+# Container box manifest
+# Docs: https://docs.destrier.io/contributing/box-structure#configure-box-yaml
+
+# Identity
+id: your-box-id                  
+competitionId: your-competition-id   
+version: 1.0.0
+name: "Your box name"
+authors: [your-handle]
+
+# Classification
+runType: container
+category: [web]              
+difficulty: easy                
+
+# Objectives
+objective: "Describe what a successful solve is."
+flags:
+  - host: app                 
+    gating: service-user                                  
+
+# Networking
+entrypoint:
+  network: main               
+
+networks:
+  - name: main
+    cidr: 10.10.0.0/24
+
+# Hosts
+hosts:
+  - name: app
+    kind: container
+    build:
+      source: target/app        
+    networks:
+      - name: main
+        ip: 10.10.0.10         
+    healthcheck: "http:8000/health"  

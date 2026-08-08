@@ -1,0 +1,42 @@
+# Virtual machine box manifest
+# Docs: https://docs.destrier.io/contributing/box-structure#configure-box-yaml
+
+# Identity
+id: your-box-id
+competitionId: your-competition-id
+version: 1.0.0
+name: "Your box name"
+authors: [your-handle]
+
+# Classification
+runType: vm
+category: [privilege-escalation]
+difficulty: medium
+
+# Objectives
+objective: "Describe what a successful solve is."
+flags:
+  - host: host
+    gating: user
+  - host: host
+    gating: root
+
+# Networking
+entrypoint:
+  network: main
+
+networks:
+  - name: main
+    cidr: 10.10.0.0/24
+
+# Hosts
+hosts:
+  - name: host
+    kind: vm
+    os: linux
+    build:
+      source: target/host
+    networks:
+      - name: main
+        ip: 10.10.0.10
+    healthcheck: "tcp:22"

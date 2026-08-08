@@ -1,0 +1,308 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://destrier.io/schemas/box.schema.json",
+  "title": "Destrier box manifest",
+  "description": "Describes how Destrier builds, runs, and evaluates a box. Every box contains a single `box.yaml`.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "id",
+    "competitionId",
+    "version",
+    "name",
+    "authors",
+    "runType",
+    "category",
+    "difficulty",
+    "objective",
+    "flags",
+    "entrypoint",
+    "networks",
+    "hosts"
+  ],
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z0-9]([a-z0-9-]*[a-z0-9])?$",
+      "description": "A unique, immutable identifier for this box within the competition. Use lowercase letters, numbers, and hyphens only."
+    },
+    "competitionId": {
+      "type": "string",
+      "pattern": "^[a-z0-9]([a-z0-9-]*[a-z0-9])?$",
+      "description": "The competition identifier used to route this box into the correct competition storage namespace. Use lowercase letters, numbers, and hyphens only."
+    },
+    "version": {
+      "type": "string",
+      "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$",
+      "description": "Semantic version (for example, 1.0.0). Increment it whenever the box changes. Never modify a published version."
+    },
+    "name": {
+      "type": "string",
+      "minLength": 1,
+      "description": "A human-readable name for the box."
+    },
+    "authors": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "minItems": 1,
+      "description": "One or more author names or handles."
+    },
+    "runType": {
+      "type": "string",
+      "enum": [
+        "container",
+        "vm",
+        "network"
+      ],
+      "description": "The type of environment the box runs in: a single container, a single virtual machine, or a multi-host network."
+    },
+    "category": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$"
+      },
+      "minItems": 1,
+      "uniqueItems": true,
+      "description": "The skill areas covered by the box, for example web, privilege-escalation, lateral-movement, or binary-exploitation. Use lowercase words separated by hyphens."
+    },
+    "difficulty": {
+      "type": "string",
+      "enum": [
+        "easy",
+        "medium",
+        "hard",
+        "insane"
+      ],
+      "description": "The validated difficulty of the box."
+    },
+    "objective": {
+      "type": "string",
+      "minLength": 1,
+      "description": "A one-line description of what the agent must achieve to solve the box."
+    },
+    "flags": {
+      "type": "array",
+      "minItems": 1,
+      "description": "The flags available in the box. Each flag represents a capture point, such as a user or root flag on a host, or one flag per host in a multi-host box. Destrier provides the runtime value as DESTRIER_FLAG_<HOST>_<GATING>; checked-in placeholders should use __DESTRIER_FLAG_<HOST>_<GATING>__.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "host",
+          "gating"
+        ],
+        "properties": {
+          "host": {
+            "type": "string",
+            "description": "The host that contains this flag. Must match one of the hosts defined below."
+          },
+          "gating": {
+            "type": "string",
+            "description": "The privilege required to retrieve this flag. The flag is generated for every run and is never committed to the box. Use this with host to derive the runtime variable name.",
+            "enum": [
+              "user",
+              "root",
+              "service-user",
+              "administrator",
+              "system",
+              "domain-admin"
+            ]
+          }
+        }
+      }
+    },
+    "entrypoint": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "network"
+      ],
+      "properties": {
+        "network": {
+          "type": "string",
+          "description": "The network the agent's harness connects to at the start of the evaluation. Must match one of the defined networks."
+        }
+      }
+    },
+    "networks": {
+      "type": "array",
+      "minItems": 1,
+      "description": "The networks in the box. Each network is a /24 subnet within the platform range `10.10.0.0/16`. Most boxes use one network; network boxes define several.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "name",
+          "cidr"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "description": "The network name, referenced by hosts and the entrypoint."
+          },
+          "cidr": {
+            "type": "string",
+            "pattern": "^10\\.10\\.(25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])\\.0/24$",
+            "description": "The network's `/24` subnet within `10.10.0.0/16`, for example `10.10.0.0/24`."
+          }
+        }
+      }
+    },
+    "hosts": {
+      "type": "array",
+      "minItems": 1,
+      "description": "The hosts in the box. Container and virtual machine boxes usually have one host; network boxes have several.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "name",
+          "kind",
+          "build",
+          "networks"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "description": "A unique name for the host."
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "container",
+              "vm"
+            ],
+            "description": "The host type."
+          },
+          "os": {
+            "type": "string",
+            "enum": [
+              "linux",
+              "windows"
+            ],
+            "default": "linux",
+            "description": "The guest operating system. Defaults to `linux`."
+          },
+          "role": {
+            "type": "string",
+            "enum": [
+              "domain-controller"
+            ],
+            "description": "Optional. Marks the host as an Active Directory domain controller. Domain controllers must be Windows virtual machines built from a prebuilt disk image."
+          },
+          "build": {
+            "type": "object",
+            "additionalProperties": false,
+            "minProperties": 1,
+            "description": "How the host is built. Every host is built from source except a domain controller, which ships a prebuilt disk image.",
+            "properties": {
+              "source": {
+                "type": "string",
+                "minLength": 1,
+                "description": "Relative path within the box to a Dockerfile directory for containers or a Packer definition directory for virtual machines. Required for every host except a domain controller."
+              },
+              "image": {
+                "type": "string",
+                "minLength": 1,
+                "description": "Relative path within the box to the prebuilt disk image. Used only by a domain controller, which has no source."
+              }
+            }
+          },
+          "networks": {
+            "type": "array",
+            "minItems": 1,
+            "description": "The networks this host is attached to, each with a static IP address. A host on multiple networks acts as a pivot point.",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "name",
+                "ip"
+              ],
+              "properties": {
+                "name": {
+                  "type": "string",
+                  "description": "The network name. Must match a defined network."
+                },
+                "ip": {
+                  "type": "string",
+                  "pattern": "^10\\.10\\.(25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])\\.(25[0-4]|2[0-4][0-9]|1[0-9]{2}|[1-9][0-9]?)$",
+                  "description": "The host's static IP address on this network. Must be within the network's `/24` subnet."
+                }
+              }
+            }
+          },
+          "healthcheck": {
+            "type": "string",
+            "oneOf": [
+              {
+                "pattern": "^tcp:(6553[0-5]|655[0-2][0-9]|65[0-4][0-9]{2}|6[0-4][0-9]{3}|[1-5][0-9]{4}|[1-9][0-9]{0,3})$"
+              },
+              {
+                "pattern": "^https?:(6553[0-5]|655[0-2][0-9]|65[0-4][0-9]{2}|6[0-4][0-9]{3}|[1-5][0-9]{4}|[1-9][0-9]{0,3})(/.*)?$"
+              }
+            ],
+            "description": "Optional. How Destrier verifies the host is ready before the evaluation begins. Omit if there is no service to check. Ports must be between 1 and 65535. Formats: `tcp:PORT`, `http:PORT[/path]`, or `https:PORT[/path]`."
+          }
+        },
+        "allOf": [
+          {
+            "if": {
+              "required": [
+                "role"
+              ],
+              "properties": {
+                "role": {
+                  "const": "domain-controller"
+                }
+              }
+            },
+            "then": {
+              "required": [
+                "os"
+              ],
+              "properties": {
+                "kind": {
+                  "const": "vm"
+                },
+                "os": {
+                  "const": "windows"
+                },
+                "build": {
+                  "required": [
+                    "image"
+                  ],
+                  "not": {
+                    "required": [
+                      "source"
+                    ]
+                  }
+                }
+              }
+            },
+            "else": {
+              "properties": {
+                "build": {
+                  "required": [
+                    "source"
+                  ],
+                  "not": {
+                    "required": [
+                      "image"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        ]
+      }
+    }
+  }
+}

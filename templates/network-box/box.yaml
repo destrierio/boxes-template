@@ -1,0 +1,55 @@
+# Network box manifest
+# Docs: https://docs.destrier.io/contributing/box-structure#configure-box-yaml
+
+# Identity
+id: your-box-id
+competitionId: your-competition-id
+version: 1.0.0
+name: "Your box name"
+authors: [your-handle]
+
+# Classification
+runType: network
+category: [lateral-movement]
+difficulty: hard
+
+# Objectives
+objective: "Describe the final objective."
+flags:
+  - host: dmz
+    gating: root
+  - host: dc
+    gating: domain-admin
+
+# Networking
+entrypoint:
+  network: external
+
+networks:
+  - name: external
+    cidr: 10.10.0.0/24
+  - name: corp
+    cidr: 10.10.1.0/24
+
+# Hosts
+hosts:
+  - name: dmz
+    kind: container
+    build:
+      source: target/dmz
+    networks:
+      - name: external
+        ip: 10.10.0.10
+      - name: corp
+        ip: 10.10.1.10
+    healthcheck: "tcp:80"
+  - name: dc
+    kind: vm
+    os: windows
+    role: domain-controller
+    build:
+      image: target/dc/dc.vmdk
+    networks:
+      - name: corp
+        ip: 10.10.1.20
+    healthcheck: "tcp:3389"

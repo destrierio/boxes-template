@@ -1,0 +1,6 @@
+services:
+  gateway:
+    build: .
+    image: destrier/relay-yard-gateway:dev
+    ports:
+      - "8000:8000"
