@@ -17,7 +17,8 @@ difficulty: easy
 objective: "Describe what a successful solve is."
 flags:
   - host: app                 
-    gating: service-user                                  
+    gating: service-user
+    value: "leet{replace_me_app_service_user}"
 
 # Networking
 entrypoint:

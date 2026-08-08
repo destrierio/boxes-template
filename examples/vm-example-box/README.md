@@ -36,7 +36,7 @@ The endpoint joins a user-supplied filename with the document directory without 
 - **Objective:** Read the flag available to the analyst user
 - **Host:** `host`
 - **Gating:** `user`
-- **Runtime variable:** `DESTRIER_FLAG_HOST_USER`
+- **Flag:** `leet{signal_desk_user}`
 - **Proof point:** `/opt/signal-desk/flag.txt`, accessible through the vulnerable download endpoint
 
 

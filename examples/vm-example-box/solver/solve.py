@@ -10,7 +10,7 @@ import sys
 
 import requests
 
-FLAG_RE = re.compile(r"destrier\{[0-9a-f]{16}\}")
+FLAG_RE = re.compile(r"leet\{[^{}\s]+\}")
 
 
 def solve(base_url: str):

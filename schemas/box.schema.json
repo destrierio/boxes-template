@@ -87,13 +87,14 @@
     "flags": {
       "type": "array",
       "minItems": 1,
-      "description": "The flags available in the box. Each flag represents a capture point, such as a user or root flag on a host, or one flag per host in a multi-host box. Destrier provides the runtime value as DESTRIER_FLAG_<HOST>_<GATING>; checked-in placeholders should use __DESTRIER_FLAG_<HOST>_<GATING>__.",
+      "description": "The flags available in the box. Each flag represents a capture point, such as a user or root flag on a host, or one flag per host in a multi-host box. Contributors provide static flag values in `box.yaml` and place the same exact values in the target. Flags must use the `leet{...}` format and are submitted exactly as written.",
       "items": {
         "type": "object",
         "additionalProperties": false,
         "required": [
           "host",
-          "gating"
+          "gating",
+          "value"
         ],
         "properties": {
           "host": {
@@ -102,7 +103,7 @@
           },
           "gating": {
             "type": "string",
-            "description": "The privilege required to retrieve this flag. The flag is generated for every run and is never committed to the box. Use this with host to derive the runtime variable name.",
+            "description": "The privilege required to retrieve this flag.",
             "enum": [
               "user",
               "root",
@@ -111,6 +112,11 @@
               "system",
               "domain-admin"
             ]
+          },
+          "value": {
+            "type": "string",
+            "pattern": "^leet\\{[^{}\\s]+\\}$",
+            "description": "The static flag value to submit. Must match the value reachable at the proof point and use the `leet{...}` format."
           }
         }
       }

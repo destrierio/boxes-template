@@ -18,6 +18,7 @@ objective: "Achieve server-side template injection (SSTI) and read the flag as t
 flags:
   - host: app
     gating: service-user
+    value: "leet{bulletin_service_user}"
 
 # Networking
 entrypoint:

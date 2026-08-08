@@ -18,8 +18,10 @@ objective: "Describe what a successful solve is."
 flags:
   - host: host
     gating: user
+    value: "leet{replace_me_host_user}"
   - host: host
     gating: root
+    value: "leet{replace_me_host_root}"
 
 # Networking
 entrypoint:

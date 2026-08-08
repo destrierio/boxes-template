@@ -38,7 +38,7 @@ Document each objective, including where it is located and what level of access 
 - **Objective:** Read the flag as the web service user
 - **Host:** `app`
 - **Gating:** `service-user`
-- **Runtime variable:** `DESTRIER_FLAG_APP_SERVICE_USER`
+- **Flag:** `leet{bulletin_service_user}`
 - **Proof point:** `/flag.txt`, readable by the `web` service user
 
 

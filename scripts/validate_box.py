@@ -13,7 +13,8 @@ For each box, checks that:
 4. Build inputs exist, use the expected format, and stay inside the box.
 5. Network settings and host IP addresses are valid.
 6. Required files and directories are present.
-7. The `competitionId/id` pair is unique for storage routing.
+7. Static flag values are unique.
+8. The `competitionId/id` pair is unique for storage routing.
 
 Exits with status 0 if all checks pass, otherwise 1.
 """
@@ -116,6 +117,9 @@ def check(box_yaml: Path) -> list[str]:
     for flag in doc["flags"]:
         if flag["host"] not in host_names:
             errors.append(f"flags: host '{flag['host']}' is not a defined host")
+    flag_values = [flag["value"] for flag in doc["flags"]]
+    for value in duplicates(flag_values):
+        errors.append(f"flags: duplicate flag value '{value}'")
     if doc["entrypoint"]["network"] not in net_cidr:
         errors.append(
             f"entrypoint.network '{doc['entrypoint']['network']}' is not a defined network"

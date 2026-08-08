@@ -14,16 +14,12 @@ Shared operator notes are stored in this directory.
 TXT
 
 cat >/opt/signal-desk/app.py <<'PY'
-import hashlib
-import os
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import parse_qs, urlparse
 
 ROOT = Path("/opt/signal-desk/files")
-SEED = os.environ.get("DESTRIER_SEED", "signal-desk-seed")
-DEFAULT_FLAG = f"destrier{{{hashlib.sha256(f'{SEED}:signal-desk:host:user'.encode()).hexdigest()[:16]}}}"
-FLAG = os.environ.get("DESTRIER_FLAG_HOST_USER", DEFAULT_FLAG)
+FLAG = "leet{signal_desk_user}"
 Path("/opt/signal-desk/flag.txt").write_text(FLAG + "\n")
 
 
@@ -76,8 +72,6 @@ After=network-online.target
 Wants=network-online.target
 
 [Service]
-Environment=DESTRIER_SEED=signal-desk-seed
-EnvironmentFile=-/etc/destrier/flags.env
 ExecStart=/usr/bin/python3 /opt/signal-desk/app.py
 Restart=always
 User=analyst

@@ -9,13 +9,9 @@ useradd --create-home --shell /usr/sbin/nologin analyst || true
 mkdir -p /opt/relay-yard
 
 cat >/opt/relay-yard/internal_api.py <<'PY'
-import hashlib
-import os
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
-SEED = os.environ.get("DESTRIER_SEED", "relay-yard-seed")
-DEFAULT_FLAG = f"destrier{{{hashlib.sha256(f'{SEED}:relay-yard:workstation:user'.encode()).hexdigest()[:16]}}}"
-FLAG = os.environ.get("DESTRIER_FLAG_WORKSTATION_USER", DEFAULT_FLAG)
+FLAG = "leet{relay_yard_workstation_user}"
 
 
 class Handler(BaseHTTPRequestHandler):
@@ -46,8 +42,6 @@ After=network-online.target
 Wants=network-online.target
 
 [Service]
-Environment=DESTRIER_SEED=relay-yard-seed
-EnvironmentFile=-/etc/destrier/flags.env
 ExecStart=/usr/bin/python3 /opt/relay-yard/internal_api.py
 Restart=always
 User=analyst

@@ -22,4 +22,4 @@ Template repository for creating and submitting challenge boxes for [Destrier](h
 
 ## Documentation
 
-For box structure, runtime flags, validation, submission, and the full contribution workflow, see the [Destrier contributor documentation](https://docs.destrier.io/contributing/overview) .
+For box structure, static leet flags, validation, submission, and the full contribution workflow, see the [Destrier contributor documentation](https://docs.destrier.io/contributing/overview).

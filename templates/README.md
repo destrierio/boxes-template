@@ -41,13 +41,13 @@ Document each objective, including where it is located and what level of access 
 - **Objective:** `<objective name>`
 - **Host:** `<host>`
 - **Gating:** `<user | root | service-user | administrator | system | domain-admin>`
-- **Runtime variable:** `DESTRIER_FLAG_<HOST>_<GATING>`
+- **Flag:** `leet{<unique_static_flag>}`
 - **Proof point:** `<where the flag becomes accessible>`
 
-Do not commit real flags. Destrier injects fresh values at runtime. If a checked-in file requires a placeholder, use `__DESTRIER_FLAG_<HOST>_<GATING>__` instead.
+Commit the static flag in `box.yaml` and place the same exact value at the proof point. Flags must use `leet{...}` and are submitted exactly as written.
 
 
-> Replace the placeholder during provisioning or startup.
+> Replace the sample flag before submitting the box.
 
 
 ## Notes
